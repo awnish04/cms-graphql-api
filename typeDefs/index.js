@@ -1,5 +1,23 @@
-import { gql } from "apollo-server-express";
+// import { gql } from "apollo-server-express";
 
+// export const typeDefs = gql`
+//   type About {
+//     id: ID!
+//     heading: String
+//     paragraph: String
+//     imageUrl: String
+//   }
+
+//   type Query {
+//     getAbout: [About]
+//   }
+
+//   type Mutation {
+//     createAbout(heading: String!, paragraph: String!, imageUrl: String!): About
+//     deleteAbout(id: ID!): About
+//   }
+// `;
+import { gql } from "apollo-server-express";
 export const typeDefs = gql`
   type About {
     id: ID!
@@ -14,6 +32,12 @@ export const typeDefs = gql`
 
   type Mutation {
     createAbout(heading: String!, paragraph: String!, imageUrl: String!): About
+    updateAbout(
+      id: ID!
+      heading: String!
+      paragraph: String!
+      imageUrl: String!
+    ): About
     deleteAbout(id: ID!): About
   }
 `;

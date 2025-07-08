@@ -11,5 +11,13 @@ export const resolvers = {
     deleteAbout: async (_, { id }) => {
       return await About.findByIdAndDelete(id);
     },
+    //New Update
+    updateAbout: async (_, { id, heading, paragraph, imageUrl }) => {
+      return await About.findByIdAndUpdate(
+        id,
+        { heading, paragraph, imageUrl },
+        { new: true }
+      );
+    },
   },
 };
