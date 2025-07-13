@@ -4,17 +4,23 @@ import mongoose from "mongoose";
 import cors from "cors";
 // import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import { typeDefs } from './typeDefs/index.js';
+import { typeDefs } from "./typeDefs/index.js";
 import { resolvers } from "./resolver/index.js";
-
-
-
 
 dotenv.config();
 
 const startServer = async () => {
   const app = express();
   app.use(cors());
+  // app.use(
+  //   cors({
+  //     origin: [
+  //       "https://your-admin.vercel.app",
+  //       "https://your-client.vercel.app",
+  //     ],
+  //     credentials: true,
+  //   })
+  // );
   // app.use(bodyParser.json());
 
   const server = new ApolloServer({
@@ -38,4 +44,3 @@ const startServer = async () => {
 };
 
 startServer(); // ✅ Call async function
-
