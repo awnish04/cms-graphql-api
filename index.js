@@ -8,6 +8,7 @@ import { typeDefs } from "./typeDefs/index.js";
 import { resolvers } from "./resolver/index.js";
 
 dotenv.config();
+const PORT = process.env.PORT || 4000; // fallback for local dev
 
 const startServer = async () => {
   const app = express();
