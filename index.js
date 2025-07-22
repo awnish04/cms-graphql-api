@@ -6,9 +6,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { typeDefs } from "./typeDefs/index.js";
 import { resolvers } from "./resolver/index.js";
+import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
 
 dotenv.config();
-const PORT = process.env.PORT || 4000; // fallback for local dev
+const PORT = process.env.PORT;
 
 const startServer = async () => {
   const app = express();
@@ -27,6 +28,11 @@ const startServer = async () => {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
+    cache: new InMemoryLRUCache({
+      maxSize: Math.pow(2, 20) * 100, // ~100MiB
+      ttl: 300, // 5 minutes in seconds
+    }),
+    persistedQueries: false, // ✅ explicitly disable
   });
 
   await server.start(); // ✅ REQUIRED for Apollo v3
