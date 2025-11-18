@@ -1,13 +1,17 @@
 import { gql } from "apollo-server-express";
 
 export const typeDefs = gql`
+  # =======================
+  # ABOUT
+  # =======================
   type About {
     id: ID!
-    heading: String
     paragraph: String
-    imageUrl: String
   }
 
+  # =======================
+  # PROJECTS
+  # =======================
   type Project {
     id: ID!
     title: String
@@ -18,20 +22,28 @@ export const typeDefs = gql`
     liveUrl: String
   }
 
+  # =======================
+  # SKILLS
+  # =======================
+  type Skill {
+    id: ID!
+    name: String!
+    imageUrl: String!
+  }
+
   type Query {
     getAbout: [About]
     getProjects: [Project]
+    getSkills: [Skill] # 🆕
   }
 
   type Mutation {
     # ✅ About mutations
-    createAbout(heading: String!, paragraph: String!, imageUrl: String!): About
+    createAbout(paragraph: String!): About
 
     updateAbout(
       id: ID!
-      heading: String!
       paragraph: String!
-      imageUrl: String!
     ): About
 
     deleteAbout(id: ID!): About
@@ -57,5 +69,10 @@ export const typeDefs = gql`
     ): Project
 
     deleteProject(id: ID!): Project
+
+    # 🆕 SKILLS
+    createSkill(name: String!, imageUrl: String!): Skill!
+    updateSkill(id: ID!, name: String!, imageUrl: String!): Skill!
+    deleteSkill(id: ID!): Skill!
   }
 `;

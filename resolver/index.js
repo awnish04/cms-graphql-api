@@ -1,28 +1,33 @@
 import About from "../models/About.js";
-import Project from "../models/Project.js"; // 🆕
+import Project from "../models/Project.js";
+import Skill from "../models/Skill.js";
 
 export const resolvers = {
   Query: {
     getAbout: async () => await About.find(),
-    getProjects: async () => await Project.find(), // 🆕
+    getProjects: async () => await Project.find(),
+
+    getSkills: async () => await Skill.find(), // 🆕
   },
   Mutation: {
-    // About mutations
-    createAbout: async (_, { heading, paragraph, imageUrl }) => {
-      return await About.create({ heading, paragraph, imageUrl });
+    // -----------------------
+    // About Mutation
+    // -----------------------
+    createAbout: async (_, { paragraph }) => {
+      return await About.create({ paragraph});
     },
     deleteAbout: async (_, { id }) => {
       return await About.findByIdAndDelete(id);
     },
-    updateAbout: async (_, { id, heading, paragraph, imageUrl }) => {
+    updateAbout: async (_, { id,paragraph}) => {
       return await About.findByIdAndUpdate(
         id,
-        { heading, paragraph, imageUrl },
+        { paragraph },
         { new: true }
       );
     },
 
-    // 🆕 Project mutations
+    // -----------------------
     createProject: async (
       _,
       { title, description, imageUrls, techStack, githubUrl, liveUrl }
@@ -57,6 +62,22 @@ export const resolvers = {
 
     deleteProject: async (_, { id }) => {
       return await Project.findByIdAndDelete(id);
+    },
+    // -----------------------
+    // 🆕 SKILLS
+    // -----------------------
+    createSkill: async (_, { name, imageUrl }) => {
+      return await Skill.create({ name, imageUrl });
+    },
+    updateSkill: async (_, { id, name, imageUrl }) => {
+      return await Skill.findByIdAndUpdate(
+        id,
+        { name, imageUrl },
+        { new: true }
+      );
+    },
+    deleteSkill: async (_, { id }) => {
+      return await Skill.findByIdAndDelete(id);
     },
   },
 };
