@@ -1,58 +1,51 @@
+// api/graphql.js
 import { ApolloServer } from "@apollo/server";
-import { expressMiddleware } from "@apollo/server/express4";
-import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import express from "express";
-import http from "http";
-import cors from "cors";
+import {
+  handlers,
+  startServerAndCreateLambdaHandler,
+} from "@as-integrations/vercel";
 import mongoose from "mongoose";
 import { typeDefs } from "../typeDefs/index.js";
 import { resolvers } from "../resolver/index.js";
+import dotenv from "dotenv";
 
-const app = express();
-const httpServer = http.createServer(app);
+dotenv.config();
 
-// MongoDB connection
+// Global variables so they persist between invocations (Vercel warm containers)
+let handler = null;
+let server = null;
+
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB connected successfully");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    process.exit(1);
-  }
+  if (mongoose.connection.readyState >= 1) return;
+  await mongoose.connect(process.env.MONGO_URI, {
+    // These options are crucial for Vercel/serverless
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  });
 };
 
-// Apollo Server setup
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
-});
+const createHandler = async () => {
+  if (handler) return handler;
 
-// Start server function
-const startServer = async () => {
   await connectDB();
-  await server.start();
 
-  app.use(
-    "/api/graphql",
-    cors(),
-    express.json(),
-    expressMiddleware(server, {
-      context: async ({ req }) => ({ token: req.headers.token }),
-    })
-  );
-
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.status(200).json({ status: "OK", message: "GraphQL API is running" });
+  server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    // Optional: disable introspection in production if you want
+    // introspection: process.env.NODE_ENV !== "production",
   });
 
-  return app;
+  await server.start();
+
+  handler = startServerAndCreateLambdaHandler(server, handlers, {
+    context: async ({ req }) => ({ req }),
+  });
+
+  return handler;
 };
 
-// Export the serverless function
-export default async function handler(req, res) {
-  const app = await startServer();
-  return app(req, res);
-}
+export const GET = createHandler;
+export const POST = createHandler;
+// Vercel needs both GET and POST exported for the same handler

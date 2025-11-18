@@ -1,28 +1,17 @@
 {
-  "name": "cms-graphql-api",
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --exec node index.js",
-    "start": "node index.js",
-    "vercel-build": "echo 'No build step needed for Node.js backend'"
+    "dev": "nodemon index.js",
+    "build": "echo 'No build step needed for Vercel'"
   },
   "dependencies": {
-    "@apollo/server": "^4.9.5",
-    "@as-integrations/vercel": "^1.0.0",
-    "@apollo/utils.keyvaluecache": "^4.0.0",
-    "apollo-server-express": "^3.13.0",
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.0.1",
-    "express": "^4.21.2",
-    "graphql": "^16.11.0",
-    "mongoose": "^8.16.1"
+    "@apollo/server": "^4.11.0",
+    "@as-integrations/vercel": "^0.2.0",
+    "graphql": "^16.9.0",
+    "mongoose": "^8.7.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
-  },
-  "engines": {
-    "node": ">=18.x"
+    "nodemon": "^3.1.7"
   }
 }
