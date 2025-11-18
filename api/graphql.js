@@ -1,9 +1,10 @@
-// api/graphql.js
+// api/graphql.js   (or api/index.js — name doesn’t matter)
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginLandingPageDisabled } from "@apollo/server/plugin/landingPage/default";
 import {
   handlers,
   startServerAndCreateLambdaHandler,
-} from "@as-integrations/vercel";
+} from "apollo-server-lambda";
 import mongoose from "mongoose";
 import { typeDefs } from "../typeDefs/index.js";
 import { resolvers } from "../resolver/index.js";
@@ -11,41 +12,50 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Global variables so they persist between invocations (Vercel warm containers)
-let handler = null;
-let server = null;
+// Cache everything between invocations (Vercel keeps container warm)
+let cachedHandler = null;
+let cachedServer = null;
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
-  await mongoose.connect(process.env.MONGO_URI, {
-    // These options are crucial for Vercel/serverless
+  return mongoose.connect(process.env.MONGO_URI, {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
   });
 };
 
-const createHandler = async () => {
-  if (handler) return handler;
+async function getHandler() {
+  if (cachedHandler) return cachedHandler;
 
   await connectDB();
 
-  server = new ApolloServer({
+  cachedServer = new ApolloServer({
     typeDefs,
     resolvers,
-    // Optional: disable introspection in production if you want
-    // introspection: process.env.NODE_ENV !== "production",
+    plugins:
+      process.env.NODE_ENV === "production"
+        ? [ApolloServerPluginLandingPageDisabled()] // optional: hide playground in prod
+        : [],
   });
 
-  await server.start();
+  await cachedServer.start();
 
-  handler = startServerAndCreateLambdaHandler(server, handlers, {
-    context: async ({ req }) => ({ req }),
+  cachedHandler = startServerAndCreateLambdaHandler(cachedServer, handlers, {
+    context: ({ event, context }) => ({ event, context }),
   });
 
-  return handler;
+  return cachedHandler;
+}
+
+// Modern Vercel format (2024–2025)
+export const handler = async (event, context) => {
+  const lambdaHandler = await getHandler();
+  return lambdaHandler(event, context);
 };
 
-export const GET = createHandler;
-export const POST = createHandler;
-// Vercel needs both GET and POST exported for the same handler
+// Also export config to disable Vercel's default body parsing (critical for GraphQL!)
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
