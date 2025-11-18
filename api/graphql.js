@@ -1,59 +1,62 @@
-// api/graphql.js   (or api/index.js — name doesn’t matter)
+// api/graphql.js
 import { ApolloServer } from "@apollo/server";
-import { ApolloServerPluginLandingPageDisabled } from "@apollo/server/plugin/landingPage/default";
-import {
-  handlers,
-  startServerAndCreateLambdaHandler,
-} from "apollo-server-lambda";
+import { startStandaloneServer } from "@apollo/server/standalone";
 import mongoose from "mongoose";
-import { typeDefs } from "../typeDefs/index.js";
+import { typeDefs } from "../typeDefs/index.js"; // keep your existing folders
 import { resolvers } from "../resolver/index.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Cache everything between invocations (Vercel keeps container warm)
-let cachedHandler = null;
-let cachedServer = null;
+// Cache server + DB connection for warm invocations
+let apolloHandler;
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
-  return mongoose.connect(process.env.MONGO_URI, {
+  if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing!");
+  await mongoose.connect(process.env.MONGO_URI, {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
   });
+  console.log("MongoDB connected");
 };
 
-async function getHandler() {
-  if (cachedHandler) return cachedHandler;
+const createApolloHandler = async () => {
+  if (apolloHandler) return apolloHandler;
 
   await connectDB();
 
-  cachedServer = new ApolloServer({
+  const server = new ApolloServer({
     typeDefs,
     resolvers,
-    plugins:
-      process.env.NODE_ENV === "production"
-        ? [ApolloServerPluginLandingPageDisabled()] // optional: hide playground in prod
-        : [],
+    introspection: true, // enable Playground in prod if you want
+    plugins: process.env.NODE_ENV === "production" ? [] : [],
   });
 
-  await cachedServer.start();
+  await server.start();
 
-  cachedHandler = startServerAndCreateLambdaHandler(cachedServer, handlers, {
-    context: ({ event, context }) => ({ event, context }),
+  const { handleRequest } = await startStandaloneServer(server, {
+    listen: false, // we don't listen on a port
+    context: async ({ req }) => ({ req }),
   });
 
-  return cachedHandler;
-}
-
-// Modern Vercel format (2024–2025)
-export const handler = async (event, context) => {
-  const lambdaHandler = await getHandler();
-  return lambdaHandler(event, context);
+  apolloHandler = handleRequest;
+  return apolloHandler;
 };
 
-// Also export config to disable Vercel's default body parsing (critical for GraphQL!)
+// Vercel expects a default export (req, res) => {}
+export default async function handler(req, res) {
+  try {
+    const apolloHandler = await createApolloHandler();
+    return apolloHandler(req, res);
+  } catch (err) {
+    console.error("Apollo handler crash:", err);
+    res.status(500).json({ error: "Server crash", message: err.message });
+  }
+}
+
+// Critical: disable Vercel's default body parser!
 export const config = {
   api: {
     bodyParser: false,
