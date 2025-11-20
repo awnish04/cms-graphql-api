@@ -64,48 +64,67 @@
 // };
 
 
-import { ApolloServer } from "@apollo/server";
-import { startServerAndCreateNextHandler } from "@as-integrations/next";
-import mongoose from "mongoose";
-import { typeDefs } from "../typeDefs/index.js";
-import { resolvers } from "../resolver/index.js";
+// api/graphql.js
+// import { ApolloServer } from "@apollo/server";
+// import { startServerAndCreateNextHandler } from "@as-integrations/next";
+// import mongoose from "mongoose";
+// import { typeDefs } from "../typeDefs/index.js";
+// import { resolvers } from "../resolver/index.js";
 
-let isConnected = false;
+// // Global variable to cache connection across serverless invocations
+// let cachedConnection = null;
 
-// ---- MONGODB CONNECTION (SERVERLESS SAFE) ----
-async function connectDB() {
-  if (isConnected) return;
+// async function connectDB() {
+//   if (cachedConnection) {
+//     return cachedConnection;
+//   }
 
-  if (!process.env.MONGO_URI) {
-    throw new Error("Missing MONGO_URI");
-  }
+//   if (!process.env.MONGO_URI) {
+//     throw new Error("Missing MONGO_URI");
+//   }
 
-  const conn = await mongoose.connect(process.env.MONGO_URI);
-  isConnected = conn.connections[0].readyState === 1;
-}
+//   try {
+//     const conn = await mongoose.connect(process.env.MONGO_URI, {
+//       bufferCommands: false,
+//     });
+//     cachedConnection = conn;
+//     return conn;
+//   } catch (error) {
+//     console.error("MongoDB connection error:", error);
+//     throw error;
+//   }
+// }
 
-// ---- APOLLO SERVER (SERVERLESS MODE) ----
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  introspection: true, // supports Playground
-});
+// const server = new ApolloServer({
+//   typeDefs,
+//   resolvers,
+//   introspection: true,
+//   persistedQueries: false,
+// });
 
-const handler = startServerAndCreateNextHandler(server, {
-  context: async (req, res) => {
-    await connectDB();
-    return { req };
-  },
-});
+// const handler = startServerAndCreateNextHandler(server, {
+//   context: async (req, res) => {
+//     await connectDB();
+//     return { req, res };
+//   },
+// });
 
-// ---- VERCEL API ROUTE ----
-export default async function graphql(req, res) {
-  return handler(req, res);
-}
+// export default async function graphql(req, res) {
+//   // Enable CORS
+//   res.setHeader('Access-Control-Allow-Origin', '*');
+//   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+//   if (req.method === 'OPTIONS') {
+//     res.status(200).end();
+//     return;
+//   }
+  
+//   return handler(req, res);
+// }
 
-// Disable body parsing (required)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
